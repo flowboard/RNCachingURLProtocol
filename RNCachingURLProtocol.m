@@ -27,6 +27,7 @@
 
 #import "RNCachingURLProtocol.h"
 #import "Reachability.h"
+#import "NSString+Sha1.h"
 
 #define WORKAROUND_MUTABLE_COPY_LEAK 1
 
@@ -71,7 +72,7 @@ static NSSet *RNCachingSupportedSchemes;
       RNCachingSupportedSchemesMonitor = [NSObject new];
     });
         
-    [self setSupportedSchemes:[NSSet setWithObject:@"http"]];
+      [self setSupportedSchemes:[[NSSet setWithObjects:@"http", @"https", nil] retain]];//TODO: this will now leak.
   }
 }
 
@@ -79,9 +80,11 @@ static NSSet *RNCachingSupportedSchemes;
 {
   // only handle http requests we haven't marked with our header.
   if ([[self supportedSchemes] containsObject:[[request URL] scheme]] &&
-      ([request valueForHTTPHeaderField:RNCachingURLHeader] == nil))
-  {
-    return YES;
+      ([request valueForHTTPHeaderField:RNCachingURLHeader] == nil)){
+      NSString *method = [request HTTPMethod];
+      if ([method isEqualToString:@"GET"]) {
+          return YES;
+      }
   }
   return NO;
 }
@@ -94,8 +97,14 @@ static NSSet *RNCachingSupportedSchemes;
 - (NSString *)cachePathForRequest:(NSURLRequest *)aRequest
 {
   // This stores in the Caches directory, which can be deleted when space is low, but we only use it for offline access
-  NSString *cachesPath = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject];
-  return [cachesPath stringByAppendingPathComponent:[NSString stringWithFormat:@"%x", [[[aRequest URL] absoluteString] hash]]];
+    NSString *documentsDirectory = [NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES) objectAtIndex:0];
+    NSString *cachesPath = [documentsDirectory stringByAppendingString:@"/Flowboard/cache/"];
+    if(![[NSFileManager defaultManager] fileExistsAtPath:cachesPath]) {
+        [[NSFileManager defaultManager] createDirectoryAtPath:cachesPath withIntermediateDirectories:YES attributes:nil error:NULL];
+    }
+    NSString *fileName = [[[aRequest URL] absoluteString] sha1];
+    //  NSString *cachesPath = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject];
+  return [cachesPath stringByAppendingPathComponent:fileName];
 }
 
 - (void)startLoading
@@ -108,7 +117,7 @@ static NSSet *RNCachingSupportedSchemes;
       [[self request] mutableCopy];
 #endif
     // we need to mark this request with our header so we know not to handle it in +[NSURLProtocol canInitWithRequest:].
-    [connectionRequest setValue:@"" forHTTPHeaderField:RNCachingURLHeader];
+    [connectionRequest setValue:@"MARK_OF_THE_BEAST" forHTTPHeaderField:RNCachingURLHeader];
     NSURLConnection *connection = [NSURLConnection connectionWithRequest:connectionRequest
                                                                 delegate:self];
     [self setConnection:connection];
