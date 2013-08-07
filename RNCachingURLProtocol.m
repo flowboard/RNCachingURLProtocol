@@ -168,7 +168,7 @@ static NSSet *RNCachingSupportedSchemes;
     [redirectableRequest setValue:nil forHTTPHeaderField:RNCachingURLHeader];
 
     NSString *cachePath = [self cachePathForRequest:[self request]];
-    RNCachedData *cache = [RNCachedData new];
+    RNCachedData *cache = [[RNCachedData new] autorelease];
     [cache setResponse:response];
     [cache setData:[self data]];
     [cache setRedirectRequest:redirectableRequest];
@@ -205,7 +205,7 @@ static NSSet *RNCachingSupportedSchemes;
   [[self client] URLProtocolDidFinishLoading:self];
 
   NSString *cachePath = [self cachePathForRequest:[self request]];
-  RNCachedData *cache = [RNCachedData new];
+  RNCachedData *cache = [[RNCachedData new] autorelease];
   [cache setResponse:[self response]];
   [cache setData:[self data]];
   [NSKeyedArchiver archiveRootObject:cache toFile:cachePath];
@@ -224,7 +224,7 @@ static NSSet *RNCachingSupportedSchemes;
 - (void)appendData:(NSData *)newData
 {
   if ([self data] == nil) {
-    [self setData:[newData mutableCopy]];
+    [self setData:[[newData mutableCopy] autorelease]];
   }
   else {
     [[self data] appendData:newData];
