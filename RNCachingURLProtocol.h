@@ -62,8 +62,7 @@
 
 @interface RNCachingURLProtocol : NSURLProtocol
 
-+ (NSSet *)supportedSchemes;
-+ (void)setSupportedSchemes:(NSSet *)supportedSchemes;
++ (NSArray *)supportedSchemes;
 
 - (NSString *)cachePathForRequest:(NSURLRequest *)aRequest;
 - (BOOL) useCache;

@@ -56,7 +56,7 @@ static NSString *RNCachingURLHeader = @"X-RNCache";
 @end
 
 static NSObject *RNCachingSupportedSchemesMonitor;
-static NSSet *RNCachingSupportedSchemes;
+static NSArray *RNCachingSupportedSchemes;
 
 @implementation RNCachingURLProtocol
 @synthesize connection = connection_;
@@ -72,13 +72,14 @@ static NSSet *RNCachingSupportedSchemes;
       RNCachingSupportedSchemesMonitor = [NSObject new];
     });
         
-      [self setSupportedSchemes:[[NSSet setWithObjects:@"http", @"https", nil] retain]];//TODO: this will now leak.
+      [self setSupportedSchemes:[@[@"http", @"https"] retain]];
   }
 }
 
 + (BOOL)canInitWithRequest:(NSURLRequest *)request
 {
   // only handle http requests we haven't marked with our header.
+    NSLog(@"%@",[self supportedSchemes]);
   if ([[self supportedSchemes] containsObject:[[request URL] scheme]] &&
       ([request valueForHTTPHeaderField:RNCachingURLHeader] == nil)){
       NSString *method = [request HTTPMethod];
@@ -112,7 +113,7 @@ static NSSet *RNCachingSupportedSchemes;
   if (![self useCache]) {
     NSMutableURLRequest *connectionRequest = 
 #if WORKAROUND_MUTABLE_COPY_LEAK
-      [[self request] mutableCopyWorkaround];
+      [[[self request] mutableCopyWorkaround] autorelease];
 #else
       [[self request] mutableCopy];
 #endif
@@ -156,7 +157,7 @@ static NSSet *RNCachingSupportedSchemes;
   if (response != nil) {
       NSMutableURLRequest *redirectableRequest =
 #if WORKAROUND_MUTABLE_COPY_LEAK
-      [request mutableCopyWorkaround];
+      [[request mutableCopyWorkaround] autorelease];
 #else
       [request mutableCopy];
 #endif
@@ -231,8 +232,8 @@ static NSSet *RNCachingSupportedSchemes;
   }
 }
 
-+ (NSSet *)supportedSchemes {
-  NSSet *supportedSchemes;
++ (NSArray *)supportedSchemes {
+  NSArray *supportedSchemes;
   @synchronized(RNCachingSupportedSchemesMonitor)
   {
     supportedSchemes = RNCachingSupportedSchemes;
@@ -240,7 +241,7 @@ static NSSet *RNCachingSupportedSchemes;
   return supportedSchemes;
 }
 
-+ (void)setSupportedSchemes:(NSSet *)supportedSchemes
++ (void)setSupportedSchemes:(NSArray *)supportedSchemes
 {
   @synchronized(RNCachingSupportedSchemesMonitor)
   {
