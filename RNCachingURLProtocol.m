@@ -79,7 +79,6 @@ static NSArray *RNCachingSupportedSchemes;
 + (BOOL)canInitWithRequest:(NSURLRequest *)request
 {
   // only handle http requests we haven't marked with our header.
-    NSLog(@"%@",[self supportedSchemes]);
   if ([[self supportedSchemes] containsObject:[[request URL] scheme]] &&
       ([request valueForHTTPHeaderField:RNCachingURLHeader] == nil)){
       NSString *method = [request HTTPMethod];
